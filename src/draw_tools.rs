@@ -1,57 +1,99 @@
 extern crate minifb;
 use minifb::{Window, WindowOptions};
 
-const WIDTH: usize = 1920;
-const HEIGHT: usize = 1080;
-const WIDTH_I: isize = 1920;
-const HEIGHT_I: isize = 1080;
-
-pub fn get_window() -> Window {
-    let mut window = Window::new(
-        "Draw Pixel - Press ESC to exit",
-        WIDTH,
-        HEIGHT,
-        WindowOptions::default(),
-    )
-    .unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
-
-    // Limit the update rate to 1 fps
-    window.limit_update_rate(Some(std::time::Duration::from_micros(1000000)));
-
-    // draw_pixel(&mut buffer, 0, 0, 0xFF1199);
-    // draw_pixel(&mut buffer, 1, 1, 0xFF1199);
-    // draw_pixel(&mut buffer, -WIDTH_I/2+50, -HEIGHT_I/2+50, 0xFF1199);
-    
-    //window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
-    return window;
-    // while window.is_open() && !window.is_key_down(Key::Escape) {
-    //     window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
-    // }
-
+pub struct DrawTools {
+    pub width: usize,
+    pub height: usize,
+    pub buffer: Vec<u32>,
+    pub window: Window,
 }
 
-pub fn get_buffer() -> Vec<u32>  {
-    vec![0; WIDTH * HEIGHT]
-}
+impl DrawTools {
+    pub fn new(width: usize, height: usize) -> Self {
+        let draw_tools = Self {
+            width,
+            height,
+            buffer: vec![0; width * height],
+            window: Self::get_window(width, height),
+        };
+        draw_tools
+    }
 
-pub fn update(window: &mut Window, buffer: &mut Vec<u32>) {
-    window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
-}
+    fn get_window(width: usize, height: usize) -> Window {
+        let mut window = Window::new(
+            "Draw Pixel - Press ESC to exit",
+            width,
+            height,
+            WindowOptions::default(),
+        )
+        .unwrap_or_else(|e| {
+            panic!("{}", e);
+        });
 
+        // Limit the update rate to 1 fps
+        window.limit_update_rate(Some(std::time::Duration::from_micros(1000000)));
+        return window;
+    }
 
-pub fn draw(buffer: &mut Vec<u32>, x: isize, y: isize, color: u32) {
-    if (x < WIDTH_I / 2 || x > -WIDTH_I / 2) && (y < HEIGHT_I / 2 || y > -HEIGHT_I / 2) {
-        let converted_x = WIDTH_I / 2 + x;
-        let converted_y = HEIGHT_I / 2 - y;
-        let index = converted_y * WIDTH_I + converted_x;
-        buffer[usize::try_from(index).expect("error")] = color;
+    pub fn update(&mut self) {
+        self.window
+            .update_with_buffer(&self.buffer, self.width, self.height)
+            .unwrap();
+    }
+
+    pub fn draw(&mut self, x: isize, y: isize, color: u32) {
+        // Optimize ?
+        let converted_width = self.width as isize / 2;
+        let converted_height = self.height as isize / 2;
+
+        if x > converted_width
+            || x < -converted_width
+            || y > converted_height
+            || y < -converted_height
+        {
+            panic!(
+                "Invalid coordinates x: {}, y: {}, while width: {} height: {}",
+                x, y, self.width, self.height
+            );
+        }
+
+        let converted_x: usize = self.width / 2 + x as usize;
+        let converted_y: usize = self.height / 2 - y as usize;
+        let index: usize = converted_y * self.width + converted_x;
+        self.buffer[index] = color;
     }
 }
 
-// struct Color(i32, i32, i32);
 
-// impl Color {
-    
-// }
+
+pub struct Point {
+    pub x: isize,
+    pub y: isize,
+    pub z: isize,
+}
+
+impl Point {
+    pub const fn new(x: isize, y: isize, z: isize) -> Self {
+        Self { x, y, z }
+    }
+}
+
+fn color_from_rgb(r: u8, g: u8, b: u8) -> u32 {
+    let min = 0;
+    let max = 255;
+
+    let red: u32 = (r.clamp(min, max) * 16 * 16 * 16).into();
+    let green: u32 = (g.clamp(min, max) * 16 * 16).into();
+    let blue: u32 = (b.clamp(min, max) * 16).into();
+
+    let value: u32 = red + green + blue;
+    value
+}
+
+fn color_from_rgb_vec(color: Vec<u8>) -> u32 {
+    let r = color[0];
+    let g = color[1];
+    let b = color[2];
+
+    return color_from_rgb(r, g, b);
+}

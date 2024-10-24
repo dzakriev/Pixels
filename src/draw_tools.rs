@@ -1,5 +1,7 @@
 extern crate minifb;
 use minifb::{Window, WindowOptions};
+use std::ops::Sub;
+use std::vec::IntoIter;
 
 pub struct DrawTools {
     pub width: usize,
@@ -41,6 +43,12 @@ impl DrawTools {
             .unwrap();
     }
 
+    pub fn draw_direct(&mut self, x: usize, y: usize, color: u32)
+    {
+        let index: usize = y * self.width + x;
+        self.buffer[index] = color;
+    }
+
     pub fn draw(&mut self, x: isize, y: isize, color: u32) {
         // Optimize ?
         let converted_width = self.width as isize / 2;
@@ -57,15 +65,14 @@ impl DrawTools {
             );
         }
 
-        let converted_x: usize = self.width / 2 + x as usize;
-        let converted_y: usize = self.height / 2 - y as usize;
+        let converted_x: usize = (converted_width + x) as usize;
+        let converted_y: usize = (converted_height - y) as usize;
         let index: usize = converted_y * self.width + converted_x;
         self.buffer[index] = color;
     }
 }
 
-
-
+#[derive(Debug, PartialEq)]
 pub struct Point {
     pub x: isize,
     pub y: isize,
@@ -73,9 +80,66 @@ pub struct Point {
 }
 
 impl Point {
+    pub fn subtract_rework(&self, other: &Point) -> Point {
+        Point {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z
+        }
+    }
+
     pub const fn new(x: isize, y: isize, z: isize) -> Self {
         Self { x, y, z }
     }
+    
+}
+
+impl Sub for Point {
+    type Output = Point;
+
+    fn sub(self, other: Point) -> Point {
+        Point {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z
+        }
+    }
+}
+
+pub struct PointIterator<'a>
+{
+    point: &'a Point,
+    index: usize
+}
+
+impl<'a> Iterator for PointIterator<'a> {
+    type Item = isize;
+
+    fn next(&mut self) -> Option<isize> {
+        self.index+=1;
+        print!("{}", self.index);
+        match self.index {
+            1 => {Some(self.point.x)} 
+            2 => {Some(self.point.y)} 
+            3 => {Some(self.point.z)} 
+            _ => Some(0)
+        }
+    }
+}
+
+
+impl Point {
+    // pub fn iter(&self) -> PointIterator {
+    //     PointIterator {
+    //         point: self,
+    //         index: 0,
+    //     }
+    // }
+    pub fn iter(&self) -> IntoIter<isize> {
+        let i: Vec<isize> = [self.x, self.y, self.z].to_vec();
+        i.into_iter()
+    }
+
 }
 
 fn color_from_rgb(r: u8, g: u8, b: u8) -> u32 {

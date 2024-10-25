@@ -23,7 +23,7 @@ impl DrawTools {
 
     fn get_window(width: usize, height: usize) -> Window {
         let mut window = Window::new(
-            "Draw Pixel - Press ESC to exit",
+            "Press ESC to exit",
             width,
             height,
             WindowOptions::default(),
@@ -32,8 +32,7 @@ impl DrawTools {
             panic!("{}", e);
         });
 
-        // Limit the update rate to 1 fps
-        window.limit_update_rate(Some(std::time::Duration::from_micros(1000000)));
+        window.limit_update_rate(Some(std::time::Duration::from_secs(1/60)));
         return window;
     }
 
@@ -50,7 +49,6 @@ impl DrawTools {
     }
 
     pub fn draw(&mut self, x: isize, y: isize, color: u32) {
-        // Optimize ?
         let converted_width = self.width as isize / 2;
         let converted_height = self.height as isize / 2;
 
@@ -74,9 +72,9 @@ impl DrawTools {
 
 #[derive(Debug, PartialEq)]
 pub struct Point {
-    pub x: isize,
-    pub y: isize,
-    pub z: isize,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl Point {
@@ -88,7 +86,7 @@ impl Point {
         }
     }
 
-    pub const fn new(x: isize, y: isize, z: isize) -> Self {
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
     
@@ -113,51 +111,39 @@ pub struct PointIterator<'a>
 }
 
 impl<'a> Iterator for PointIterator<'a> {
-    type Item = isize;
+    type Item = f64;
 
-    fn next(&mut self) -> Option<isize> {
+    fn next(&mut self) -> Option<f64> {
         self.index+=1;
         print!("{}", self.index);
         match self.index {
             1 => {Some(self.point.x)} 
             2 => {Some(self.point.y)} 
             3 => {Some(self.point.z)} 
-            _ => Some(0)
+            _ => Some(0.0)
         }
     }
 }
 
-
 impl Point {
-    // pub fn iter(&self) -> PointIterator {
-    //     PointIterator {
-    //         point: self,
-    //         index: 0,
-    //     }
-    // }
-    pub fn iter(&self) -> IntoIter<isize> {
-        let i: Vec<isize> = [self.x, self.y, self.z].to_vec();
+    pub fn iter(&self) -> IntoIter<f64> {
+        let i: Vec<f64> = [self.x, self.y, self.z].to_vec();
         i.into_iter()
     }
 
 }
 
-fn color_from_rgb(r: u8, g: u8, b: u8) -> u32 {
-    let min = 0;
-    let max = 255;
+fn color_from_rgb(r: u32, g: u32, b: u32) -> u32 {
+    let min:u32 = 0;
+    let max: u32 = 255;
 
-    let red: u32 = (r.clamp(min, max) * 16 * 16 * 16).into();
-    let green: u32 = (g.clamp(min, max) * 16 * 16).into();
-    let blue: u32 = (b.clamp(min, max) * 16).into();
+    let red: u32 = r.clamp(min, max) * 16 * 16 * 16;
+    let green: u32 = g.clamp(min, max) * 16 * 16;
+    let blue: u32 = b.clamp(min, max) * 16;
 
-    let value: u32 = red + green + blue;
-    value
+    red + green + blue
 }
 
-fn color_from_rgb_vec(color: Vec<u8>) -> u32 {
-    let r = color[0];
-    let g = color[1];
-    let b = color[2];
-
-    return color_from_rgb(r, g, b);
+fn color_from_rgb_vec(color: Vec<u32>) -> u32 {
+    return color_from_rgb(color[0], color[1], color[2]);
 }
